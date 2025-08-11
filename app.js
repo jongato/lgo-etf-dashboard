@@ -24,6 +24,17 @@ let etfChart = null;
 
 // --- Main App Logic ---
 document.addEventListener('DOMContentLoaded', () => {
+    // Clear any corrupted localStorage data
+    try {
+        const storedHistory = localStorage.getItem('portfolioHistory');
+        if (storedHistory) {
+            JSON.parse(storedHistory); // Test if it's valid JSON
+        }
+    } catch (error) {
+        console.log('Clearing corrupted localStorage data at startup');
+        localStorage.removeItem('portfolioHistory');
+    }
+    
     fetchInitialData();
 });
 
@@ -191,7 +202,19 @@ function renderNews(articles) {
 }
 
 function updateAndRenderChart(currentValue, prevCloseValue) {
-    let history = JSON.parse(localStorage.getItem('portfolioHistory')) || [];
+    let history = [];
+    
+    try {
+        const storedHistory = localStorage.getItem('portfolioHistory');
+        if (storedHistory) {
+            history = JSON.parse(storedHistory);
+        }
+    } catch (error) {
+        console.log('Clearing corrupted localStorage data');
+        localStorage.removeItem('portfolioHistory');
+        history = [];
+    }
+    
     const today = new Date().toISOString().split('T')[0];
     
     if (history.length <= 1) {

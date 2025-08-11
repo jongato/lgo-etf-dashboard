@@ -243,7 +243,27 @@
                 gap: 2rem;
             }
             #main-content { grid-area: main; }
-            #sidebar { grid-area: sidebar; display: flex; flex-direction: column; gap: 2rem; }
+            #sidebar { 
+                grid-area: sidebar; 
+                display: flex;
+                flex-direction: column;
+                gap: 2rem;
+            }
+        }
+        
+        /* Mobile layout reordering */
+        @media (max-width: 1023px) {
+            .dashboard-layout {
+                display: flex;
+                flex-direction: column;
+                gap: 1.5rem;
+            }
+            
+            /* Mobile order: metrics → chart → portfolio → news */
+            #main-content { order: 3; } /* Portfolio comes third */
+            #sidebar { order: 2; } /* Sidebar (chart + news) comes second */
+            #performance-chart-card { order: 1; } /* Chart comes first in sidebar */
+            #news { order: 2; } /* News comes second in sidebar */
         }
     </style>
 </head>
