@@ -136,6 +136,38 @@
             color: white;
         }
         
+        .export-btn {
+            padding: 0.4rem 0.8rem;
+            border: 1px solid var(--primary-blue);
+            background: var(--background-primary);
+            color: var(--primary-blue);
+            border-radius: 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .export-btn:hover {
+            background: var(--primary-blue);
+            color: white;
+        }
+        
+        .import-btn {
+            padding: 0.4rem 0.8rem;
+            border: 1px solid var(--text-secondary);
+            background: var(--background-primary);
+            color: var(--text-secondary);
+            border-radius: 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .import-btn:hover {
+            background: var(--text-secondary);
+            color: white;
+        }
+        
         /* Chart status styling */
         .chart-status {
             margin-top: 1rem;
@@ -689,6 +721,8 @@
                         <button class="time-filter-btn" data-filter="month">Last Month</button>
                         <button class="cleanup-btn" id="cleanup-duplicates">Clean Duplicates</button>
                         <button class="sync-btn" id="sync-data">Sync Data</button>
+                        <button class="export-btn" id="export-data">Export Data</button>
+                        <button class="import-btn" id="import-data">Import Data</button>
                     </div>
                     <div id="chart-container"><canvas id="etfChart"></canvas></div>
                     <div class="chart-status-toggle">

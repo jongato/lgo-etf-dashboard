@@ -137,6 +137,57 @@ async function syncLocalDataToServer() {
     }
 }
 
+// Temporary data export function (works without backend)
+function exportPortfolioData() {
+    try {
+        const storedHistory = localStorage.getItem('portfolioHistory');
+        if (storedHistory) {
+            const history = JSON.parse(storedHistory);
+            if (history.length > 0) {
+                // Create a downloadable file
+                const dataStr = JSON.stringify(history, null, 2);
+                const dataBlob = new Blob([dataStr], {type: 'application/json'});
+                const url = URL.createObjectURL(dataBlob);
+                
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `portfolio-data-${new Date().toISOString().split('T')[0]}.json`;
+                link.click();
+                
+                URL.revokeObjectURL(url);
+                console.log('Portfolio data exported successfully');
+                return true;
+            }
+        }
+        return false;
+    } catch (error) {
+        console.error('Error exporting portfolio data:', error);
+        return false;
+    }
+}
+
+// Temporary data import function (works without backend)
+function importPortfolioData(jsonData) {
+    try {
+        const history = JSON.parse(jsonData);
+        if (Array.isArray(history) && history.length > 0) {
+            localStorage.setItem('portfolioHistory', JSON.stringify(history));
+            console.log('Portfolio data imported successfully:', history.length, 'data points');
+            
+            // Refresh the chart
+            if (etfChart) {
+                updateChartWithHistory(history);
+            }
+            
+            return true;
+        }
+        return false;
+    } catch (error) {
+        console.error('Error importing portfolio data:', error);
+        return false;
+    }
+}
+
 // --- DOM Elements & State ---
 const portfolioBody = document.getElementById('portfolio-body');
 const newsList = document.getElementById('news-list');
@@ -229,6 +280,69 @@ function setupTimeFilterControls() {
                 syncBtn.textContent = 'Sync Data';
                 syncBtn.disabled = false;
             }, 2000);
+        });
+    }
+    
+    // Add export button event listener
+    const exportBtn = document.getElementById('export-data');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', () => {
+            console.log('Export requested');
+            exportBtn.textContent = 'Exporting...';
+            exportBtn.disabled = true;
+            
+            const success = exportPortfolioData();
+            
+            // Show feedback
+            if (success) {
+                exportBtn.textContent = 'Exported!';
+            } else {
+                exportBtn.textContent = 'No Data';
+            }
+            
+            setTimeout(() => {
+                exportBtn.textContent = 'Export Data';
+                exportBtn.disabled = false;
+            }, 2000);
+        });
+    }
+    
+    // Add import button event listener
+    const importBtn = document.getElementById('import-data');
+    if (importBtn) {
+        importBtn.addEventListener('click', () => {
+            console.log('Import requested');
+            
+            // Create file input
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = '.json';
+            fileInput.style.display = 'none';
+            
+            fileInput.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const jsonData = e.target.result;
+                        const success = importPortfolioData(jsonData);
+                        
+                        // Show feedback
+                        if (success) {
+                            importBtn.textContent = 'Imported!';
+                        } else {
+                            importBtn.textContent = 'Failed';
+                        }
+                        
+                        setTimeout(() => {
+                            importBtn.textContent = 'Import Data';
+                        }, 2000);
+                    };
+                    reader.readAsText(file);
+                }
+            });
+            
+            fileInput.click();
         });
     }
     
