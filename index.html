@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LGO Partners ETF Dashboard</title>
+    <style>
+        :root {
+            --primary-blue: #4a69bd;
+            --primary-purple: #6a0dad;
+            --text-dark: #2c3e50;
+            --text-light: #8e959d;
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --border-color: #e9ecef;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --success-color: #2ecc71;
+            --danger-color: #e74c3c;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+        }
+        .container { max-width: 1400px; margin: 0 auto; padding: 2rem; }
+        header { margin-bottom: 2rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1.5rem; }
+        
+        h1, h2 { margin: 0; }
+        h1 { font-size: 2.25rem; color: var(--primary-blue); }
+        h2 { font-size: 1.5rem; margin-bottom: 1.5rem; color: var(--text-dark); }
+
+        .card { background-color: var(--card-bg); border-radius: 12px; padding: 1.5rem; box-shadow: var(--shadow); }
+        .summary-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+        .metric-card { background-color: var(--card-bg); border-radius: 12px; padding: 1.5rem; box-shadow: var(--shadow); border-left: 5px solid var(--primary-purple); }
+        .metric-card h3 { font-size: 1rem; color: var(--text-light); text-transform: uppercase; font-weight: 600; }
+        .metric-card .value { font-size: 2rem; font-weight: 600; }
+        .metric-card .change { font-size: 1rem; font-weight: 500; }
+        .positive { color: var(--success-color); }
+        .negative { color: var(--danger-color); }
+        
+        /* --- NEW LAYOUT STYLES --- */
+        .dashboard-layout {
+            display: grid;
+            grid-template-columns: 2fr 1fr; /* Main content takes 2/3, sidebar takes 1/3 */
+            gap: 2rem;
+        }
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+        #chart-container { position: relative; height: 300px; } /* Adjusted height */
+
+        .table-wrapper { overflow-x: auto; }
+        #portfolio table { width: 100%; border-collapse: collapse; font-size: 0.95rem; white-space: nowrap; }
+        #portfolio th, #portfolio td { padding: 1rem 1.25rem; text-align: left; border-bottom: 1px solid var(--border-color); }
+        #portfolio thead th { color: var(--text-light); font-weight: 600; text-transform: uppercase; font-size: 0.8rem; }
+        #portfolio .company-name { font-weight: 600; }
+        #portfolio .ticker { color: var(--text-light); font-size: 0.9rem; }
+        
+        .action-btn {
+            padding: 0.3rem 0.6rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background-color: transparent;
+            cursor: pointer;
+            font-size: 0.8rem;
+            margin-right: 0.5rem;
+            transition: all 0.2s ease-in-out;
+        }
+        .buy-btn { color: var(--success-color); border-color: var(--success-color); }
+        .buy-btn:hover { background-color: var(--success-color); color: white; }
+        .sell-btn { color: var(--danger-color); border-color: var(--danger-color); }
+        .sell-btn:hover { background-color: var(--danger-color); color: white; }
+        
+        .news-list { display: flex; flex-direction: column; gap: 1rem; }
+        .news-article { border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; }
+        .news-article:last-child { border-bottom: none; padding-bottom: 0; }
+        .news-article h4 { margin: 0 0 0.25rem 0; font-size: 1rem; font-weight: 600; }
+        .news-article a { text-decoration: none; color: var(--primary-blue); }
+        .news-article a:hover { text-decoration: underline; }
+        .news-article .source { font-size: 0.85rem; color: var(--text-light); }
+        
+        @media (max-width: 992px) { .dashboard-layout { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>LGO Partners ETF Dashboard</h1>
+        </header>
+
+        <section class="summary-metrics">
+            <div class="metric-card">
+                <h3>Total Value</h3>
+                <div class="value" id="total-value">$10,000.00</div>
+            </div>
+            <div class="metric-card">
+                <h3>Cash</h3>
+                <div class="value" id="cash-value">$0.00</div>
+            </div>
+            <div class="metric-card">
+                <h3>Day's Gain / Loss</h3>
+                <div class="value change" id="day-change">$0.00</div>
+            </div>
+        </section>
+
+        <main class="dashboard-layout">
+            <section id="portfolio" class="card">
+                <h2>Portfolio Holdings</h2>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Company</th>
+                                <th>Shares</th>
+                                <th>Price</th>
+                                <th>Value</th>
+                                <th>Weight (%)</th>
+                                <th>Day's Change ($)</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="portfolio-body"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <div class="sidebar">
+                <section id="performance-chart-card" class="card">
+                    <h2>ETF Performance</h2>
+                    <div id="chart-container">
+                        <canvas id="etfChart"></canvas>
+                    </div>
+                </section>
+                <section id="news" class="card">
+                    <h2>Recent News</h2>
+                    <div class="news-list" id="news-list"></div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
