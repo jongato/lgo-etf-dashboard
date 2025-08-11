@@ -53,7 +53,7 @@
         .metric-card .value { font-size: 2rem; font-weight: 700; }
         .positive { color: var(--success-color); }
         .negative { color: var(--danger-color); }
-        .dashboard-layout { display: grid; grid-template-columns: 1fr; gap: 1.5rem; margin-top: 1.5rem; }
+        .dashboard-layout { display: flex; flex-direction: column; gap: 1.5rem; margin-top: 1.5rem; }
         #chart-container { position: relative; height: 350px; }
         .table-wrapper { overflow-x: auto; }
         #portfolio table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
@@ -74,9 +74,99 @@
         .news-article h4 a:hover { color: var(--primary-blue); }
         .news-article .source { font-size: 0.8rem; color: var(--text-secondary); }
         
+        /* Mobile-first responsive design */
+        @media (max-width: 1023px) {
+            .container { padding: 1rem; }
+            h1 { font-size: 1.75rem; }
+            .summary-metrics { 
+                grid-template-columns: 1fr; 
+                gap: 1rem; 
+                margin-bottom: 1rem; 
+            }
+            .metric-card { 
+                padding: 1.25rem; 
+                text-align: center;
+            }
+            .metric-card h3 { font-size: 0.8rem; margin-bottom: 0.75rem; }
+            .metric-card .value { font-size: 1.5rem; }
+            .card { padding: 1rem; }
+            #chart-container { height: 250px; }
+            
+            /* Mobile table improvements */
+            .table-wrapper { 
+                overflow-x: auto; 
+                -webkit-overflow-scrolling: touch;
+                border-radius: 6px;
+                border: 1px solid var(--border-color);
+                position: relative;
+            }
+            .table-wrapper::after {
+                content: "← Scroll →";
+                position: absolute;
+                top: -25px;
+                right: 10px;
+                font-size: 0.75rem;
+                color: var(--text-secondary);
+                background: var(--background-secondary);
+                padding: 2px 8px;
+                border-radius: 4px;
+                border: 1px solid var(--border-color);
+            }
+            #portfolio table { font-size: 0.85rem; }
+            #portfolio th, #portfolio td { 
+                padding: 0.75rem 0.5rem; 
+                min-width: 80px;
+            }
+            #portfolio th:first-child, #portfolio td:first-child { min-width: 120px; }
+            #portfolio th:last-child, #portfolio td:last-child { min-width: 100px; }
+            
+            /* Mobile table column optimization */
+            #portfolio th:nth-child(2), #portfolio td:nth-child(2) { min-width: 70px; } /* Price */
+            #portfolio th:nth-child(3), #portfolio td:nth-child(3) { min-width: 90px; } /* Day Change % */
+            #portfolio th:nth-child(4), #portfolio td:nth-child(4) { min-width: 90px; } /* Day Change $ */
+            #portfolio th:nth-child(5), #portfolio td:nth-child(5) { min-width: 80px; } /* Shares */
+            #portfolio th:nth-child(6), #portfolio td:nth-child(6) { min-width: 90px; } /* Value */
+            #portfolio th:nth-child(7), #portfolio td:nth-child(7) { min-width: 80px; } /* Weight */
+            
+            /* Mobile action buttons */
+            .action-btn {
+                padding: 0.4rem 0.8rem;
+                font-size: 0.75rem;
+                margin: 0.1rem;
+                min-height: 36px;
+                min-width: 50px;
+            }
+            
+            /* Mobile news */
+            .news-article h4 { font-size: 1rem; }
+            .news-article .source { font-size: 0.75rem; }
+            
+            /* Improve mobile spacing */
+            .dashboard-layout > * { margin-bottom: 1rem; }
+            .dashboard-layout > *:last-child { margin-bottom: 0; }
+            
+            /* Mobile header adjustments */
+            header { 
+                padding-bottom: 1rem; 
+                margin-bottom: 1rem; 
+            }
+            
+            /* Ensure proper mobile order: metrics → chart → portfolio → news */
+            #main-content { order: 2; }
+            #sidebar { order: 1; }
+            #performance-chart-card { order: 1; }
+            #news { order: 3; }
+        }
+        
+        /* Hide scroll indicator on larger screens */
+        @media (min-width: 1024px) {
+            .table-wrapper::after { display: none; }
+        }
+        
         @media (min-width: 1024px) {
             h1 { font-size: 2.25rem; }
             .dashboard-layout {
+                display: grid;
                 grid-template-columns: 3fr 2fr;
                 grid-template-areas: "main sidebar";
                 gap: 2rem;
