@@ -12,6 +12,57 @@ const STOCKS = [
 const INITIAL_INVESTMENT = 10000;
 const API_BASE_URL = 'https://lgo-etf-backend.onrender.com';
 
+// Market hours configuration (Eastern Time)
+const MARKET_OPEN_HOUR = 9;
+const MARKET_OPEN_MINUTE = 30;
+const MARKET_CLOSE_HOUR = 16;
+const MARKET_CLOSE_MINUTE = 0;
+const UPDATE_INTERVAL_MINUTES = 5;
+
+// Portfolio tracking variables
+let portfolioUpdateTimer = null;
+let lastPortfolioUpdate = null;
+
+// Function to clean up duplicate data points
+function cleanupDuplicateDataPoints() {
+    try {
+        const storedHistory = localStorage.getItem('portfolioHistory');
+        if (storedHistory) {
+            let history = JSON.parse(storedHistory);
+            
+            // Remove duplicates based on timestamp (within 1 minute = same time slot)
+            const cleanedHistory = [];
+            const seenTimeSlots = new Set();
+            
+            history.forEach(record => {
+                const recordTime = new Date(record.timestamp);
+                const timeSlot = Math.floor(recordTime.getTime() / (60 * 1000)); // Round to nearest minute
+                
+                if (!seenTimeSlots.has(timeSlot)) {
+                    seenTimeSlots.add(timeSlot);
+                    cleanedHistory.push(record);
+                } else {
+                    console.log(`Removing duplicate data point at ${recordTime.toLocaleTimeString()}`);
+                }
+            });
+            
+            // Sort by timestamp to ensure chronological order
+            cleanedHistory.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+            
+            // Save cleaned history
+            localStorage.setItem('portfolioHistory', JSON.stringify(cleanedHistory));
+            
+            console.log(`Cleaned up duplicate data points. Before: ${history.length}, After: ${cleanedHistory.length}`);
+            
+            return cleanedHistory;
+        }
+    } catch (error) {
+        console.error('Error cleaning up duplicate data points:', error);
+        return [];
+    }
+    return [];
+}
+
 // --- DOM Elements & State ---
 const portfolioBody = document.getElementById('portfolio-body');
 const newsList = document.getElementById('news-list');
@@ -35,8 +86,332 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.removeItem('portfolioHistory');
     }
     
+    // Clean up any existing duplicate data points
+    cleanupDuplicateDataPoints();
+    
+    // Start fetching data
     fetchInitialData();
+    startPortfolioTracking();
+    
+    // Add time filter button event listeners
+    setupTimeFilterControls();
 });
+
+function setupTimeFilterControls() {
+    const filterButtons = document.querySelectorAll('.time-filter-btn');
+    
+    filterButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            // Remove active class from all buttons
+            filterButtons.forEach(btn => btn.classList.remove('active'));
+            
+            // Add active class to clicked button
+            button.classList.add('active');
+            
+            // Get the filter value
+            const filter = button.dataset.filter;
+            
+            // Update chart with the selected filter
+            updateChartWithTimeFilter(filter);
+        });
+    });
+    
+    // Add cleanup button event listener
+    const cleanupBtn = document.getElementById('cleanup-duplicates');
+    if (cleanupBtn) {
+        cleanupBtn.addEventListener('click', () => {
+            console.log('Manual cleanup requested');
+            const cleanedHistory = cleanupDuplicateDataPoints();
+            
+            // Refresh the chart with cleaned data
+            if (cleanedHistory.length > 0) {
+                updateChartWithHistory(cleanedHistory);
+            }
+            
+            // Show feedback
+            cleanupBtn.textContent = 'Cleaned!';
+            setTimeout(() => {
+                cleanupBtn.textContent = 'Clean Duplicates';
+            }, 2000);
+        });
+    }
+    
+    // Add status toggle button event listener
+    const statusToggleBtn = document.getElementById('status-toggle');
+    const chartStatus = document.getElementById('chart-status');
+    
+    if (statusToggleBtn && chartStatus) {
+        statusToggleBtn.addEventListener('click', () => {
+            const isHidden = chartStatus.style.display === 'none';
+            
+            if (isHidden) {
+                // Show status bar
+                chartStatus.style.display = 'block';
+                statusToggleBtn.textContent = '-';
+                statusToggleBtn.title = 'Hide Status';
+            } else {
+                // Hide status bar
+                chartStatus.style.display = 'none';
+                statusToggleBtn.textContent = '+';
+                statusToggleBtn.title = 'Show Status';
+            }
+        });
+    }
+}
+
+function updateChartWithTimeFilter(filter) {
+    try {
+        const storedHistory = localStorage.getItem('portfolioHistory');
+        if (storedHistory) {
+            const history = JSON.parse(storedHistory);
+            
+            // Never modify existing data points - just display the filtered data
+            updateChartWithHistory(history, filter);
+        }
+    } catch (error) {
+        console.error('Error updating chart with time filter:', error);
+    }
+}
+
+// Market hours and portfolio tracking functions
+function isWeekday() {
+    const now = new Date();
+    const day = now.getDay();
+    return day >= 1 && day <= 5; // Monday = 1, Friday = 5
+}
+
+function isMarketHours() {
+    if (!isWeekday()) return false;
+    
+    const now = new Date();
+    const easternTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
+    
+    const currentHour = easternTime.getHours();
+    const currentMinute = easternTime.getMinutes();
+    const currentTime = currentHour * 60 + currentMinute;
+    
+    const openTime = MARKET_OPEN_HOUR * 60 + MARKET_OPEN_MINUTE;
+    const closeTime = MARKET_CLOSE_HOUR * 60 + MARKET_CLOSE_MINUTE;
+    
+    return currentTime >= openTime && currentTime < closeTime;
+}
+
+function getNextUpdateTime() {
+    const now = new Date();
+    const easternTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
+    
+    const currentHour = easternTime.getHours();
+    const currentMinute = easternTime.getMinutes();
+    
+    // Find the next 5-minute interval
+    let nextMinute = Math.ceil(currentMinute / UPDATE_INTERVAL_MINUTES) * UPDATE_INTERVAL_MINUTES;
+    let nextHour = currentHour;
+    
+    if (nextMinute >= 60) {
+        nextMinute = 0;
+        nextHour++;
+    }
+    
+    // If we're past market close, schedule for next market open
+    if (nextHour >= MARKET_CLOSE_HOUR) {
+        nextHour = MARKET_OPEN_HOUR;
+        nextMinute = MARKET_OPEN_MINUTE;
+        // Add one day
+        easternTime.setDate(easternTime.getDate() + 1);
+    }
+    
+    easternTime.setHours(nextHour, nextMinute, 0, 0);
+    
+    // Ensure we're not scheduling for the past
+    if (easternTime <= now) {
+        easternTime.setMinutes(easternTime.getMinutes() + UPDATE_INTERVAL_MINUTES);
+    }
+    
+    console.log(`Current time: ${currentHour}:${currentMinute.toString().padStart(2, '0')}`);
+    console.log(`Next update calculated: ${nextHour}:${nextMinute.toString().padStart(2, '0')}`);
+    
+    return easternTime;
+}
+
+function updateStatusIndicators() {
+    const nextUpdateEl = document.getElementById('next-update-time');
+    const lastUpdateEl = document.getElementById('last-update-time');
+    const statusEl = document.getElementById('tracking-status');
+    
+    if (nextUpdateEl) {
+        if (isWeekday() && isMarketHours()) {
+            const nextUpdate = getNextUpdateTime();
+            nextUpdateEl.textContent = nextUpdate.toLocaleTimeString('en-US', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: false 
+            });
+        } else if (isWeekday()) {
+            nextUpdateEl.textContent = 'Next Market Open';
+        } else {
+            nextUpdateEl.textContent = 'Weekend';
+        }
+    }
+    
+    if (lastUpdateEl) {
+        if (lastPortfolioUpdate) {
+            const lastUpdate = new Date(lastPortfolioUpdate);
+            lastUpdateEl.textContent = lastUpdate.toLocaleTimeString('en-US', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: false 
+            });
+        } else {
+            lastUpdateEl.textContent = 'No updates yet';
+        }
+    }
+    
+    if (statusEl) {
+        if (!isWeekday()) {
+            statusEl.textContent = 'Weekend - No Tracking';
+        } else if (!isMarketHours()) {
+            statusEl.textContent = 'Market Closed';
+        } else {
+            statusEl.textContent = 'Active Tracking';
+        }
+    }
+}
+
+function startPortfolioTracking() {
+    if (!isWeekday()) {
+        console.log('Not a weekday, portfolio tracking not started');
+        updateStatusIndicators();
+        return;
+    }
+    
+    if (isMarketHours()) {
+        // Start immediate tracking if we're in market hours
+        scheduleNextUpdate();
+        updateStatusIndicators();
+    } else {
+        // Schedule for next market open
+        const nextMarketOpen = new Date();
+        const easternTime = new Date(nextMarketOpen.toLocaleString("en-US", {timeZone: "America/New_York"}));
+        easternTime.setHours(MARKET_OPEN_HOUR, MARKET_OPEN_MINUTE, 0, 0);
+        
+        if (easternTime <= nextMarketOpen) {
+            easternTime.setDate(easternTime.getDate() + 1);
+        }
+        
+        const timeUntilOpen = easternTime.getTime() - nextMarketOpen.getTime();
+        setTimeout(() => {
+            startPortfolioTracking();
+        }, timeUntilOpen);
+        
+        updateStatusIndicators();
+    }
+}
+
+function scheduleNextUpdate() {
+    if (!isWeekday() || !isMarketHours()) {
+        return;
+    }
+    
+    const nextUpdate = getNextUpdateTime();
+    const now = new Date();
+    const timeUntilUpdate = nextUpdate.getTime() - now.getTime();
+    
+    console.log(`Next portfolio update scheduled for: ${nextUpdate.toLocaleString()}`);
+    console.log(`Time until next update: ${Math.round(timeUntilUpdate / 1000 / 60)} minutes and ${Math.round((timeUntilUpdate % (1000 * 60)) / 1000)} seconds`);
+    
+    setTimeout(() => {
+        console.log(`Executing scheduled portfolio update at: ${new Date().toLocaleString()}`);
+        updatePortfolioValue();
+        scheduleNextUpdate();
+    }, timeUntilUpdate);
+}
+
+function updatePortfolioValue() {
+    if (!isWeekday() || !isMarketHours()) {
+        return;
+    }
+    
+    const currentValue = calculateCurrentPortfolioValue();
+    const timestamp = new Date().toISOString();
+    
+    // Add to portfolio history
+    let history = [];
+    try {
+        const storedHistory = localStorage.getItem('portfolioHistory');
+        if (storedHistory) {
+            history = JSON.parse(storedHistory);
+        }
+    } catch (error) {
+        console.log('Error reading portfolio history, starting fresh');
+        history = [];
+    }
+    
+    // Always add a new data point - never modify existing ones
+    const today = timestamp.split('T')[0];
+    
+    // Check if we already have a data point from this exact time (within 30 seconds to avoid duplicates)
+    const existingPoint = history.find(record => {
+        const recordTime = new Date(record.timestamp);
+        const currentTime = new Date(timestamp);
+        const timeDiff = Math.abs(currentTime.getTime() - recordTime.getTime());
+        return timeDiff < 30 * 1000; // Within 30 seconds
+    });
+    
+    if (!existingPoint) {
+        // Add new data point
+        history.push({
+            timestamp: timestamp,
+            value: currentValue,
+            date: today,
+            isStatic: false
+        });
+        
+        // Keep only last 1000 data points to prevent localStorage from getting too large
+        if (history.length > 1000) {
+            history = history.slice(-1000);
+        }
+        
+        localStorage.setItem('portfolioHistory', JSON.stringify(history));
+        lastPortfolioUpdate = timestamp;
+        
+        console.log(`Portfolio updated: $${currentValue.toFixed(2)} at ${new Date(timestamp).toLocaleString()}`);
+        console.log(`Total data points in history: ${history.length}`);
+        console.log(`Next update in ~5 minutes`);
+        console.log(`Duplicate check: No existing point found within 30 seconds`);
+        console.log(`History:`, history.map(h => ({ time: new Date(h.timestamp).toLocaleTimeString(), value: h.value.toFixed(2) })));
+        
+        // Clean up any duplicates that might have been created
+        const cleanedHistory = cleanupDuplicateDataPoints();
+        
+        // Update status indicators
+        updateStatusIndicators();
+        
+        // Update chart if it exists
+        if (etfChart) {
+            // Get current time filter selection
+            const activeFilter = document.querySelector('.time-filter-btn.active');
+            const currentFilter = activeFilter ? activeFilter.dataset.filter : 'all';
+            
+            // Update chart with current filter to show all accumulated data
+            updateChartWithHistory(history, currentFilter);
+        }
+    } else {
+        console.log(`Portfolio update skipped: Duplicate data point detected within 30 seconds`);
+        console.log(`Current time: ${new Date(timestamp).toLocaleTimeString()}`);
+        console.log(`Existing points:`, history.map(h => ({ time: new Date(h.timestamp).toLocaleTimeString(), value: h.value.toFixed(2) })));
+    }
+}
+
+function calculateCurrentPortfolioValue() {
+    let totalValue = portfolio.cash;
+    
+    portfolio.stocks.forEach(stock => {
+        const stockValue = stock.shares * stock.currentPrice;
+        totalValue += stockValue;
+    });
+    
+    return totalValue;
+}
 
 async function fetchInitialData() {
     try {
@@ -61,7 +436,16 @@ function initializePortfolio(stockData) {
             dayChangePerShare: data.d,
         };
     }).filter(Boolean);
+    
+    // Initialize the portfolio with current data to set up all metrics including total gain/loss
+    const stockDataForUpdate = portfolio.stocks.map(s => ({ 
+        ticker: s.ticker, 
+        c: s.currentPrice, 
+        d: s.dayChangePerShare 
+    }));
+    
     renderPortfolioTable();
+    updateDashboard(stockDataForUpdate);
 }
 
 function renderPortfolioTable() {
@@ -137,6 +521,12 @@ function updateDashboard(stockData) {
     // --- THIS IS THE FIX ---
     // This line adds the 'positive' or 'negative' class back to the summary card
     dayChangeEl.className = `value change ${totalDayChange >= 0 ? 'positive' : 'negative'}`;
+    
+    // Calculate and display total gain/loss from $10,000 starting value
+    const totalGainLoss = currentTotalValue - INITIAL_INVESTMENT;
+    const totalGainLossEl = document.getElementById('total-gain-loss');
+    totalGainLossEl.textContent = `${totalGainLoss >= 0 ? '+' : ''}$${totalGainLoss.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    totalGainLossEl.className = `value change ${totalGainLoss >= 0 ? 'positive' : 'negative'}`;
     
     updateAndRenderChart(currentTotalValue, portfolioValueAtPrevClose);
 }
@@ -221,33 +611,115 @@ function updateAndRenderChart(currentValue, prevCloseValue) {
         history = [];
     }
     
-    const today = new Date().toISOString().split('T')[0];
-    
-    if (history.length <= 1) {
+    // If no history exists, create initial static data point
+    if (history.length === 0) {
+        const now = new Date();
+        const today = now.toISOString().split('T')[0];
+        
+        // Create initial static data point at market open (9:30 AM ET)
+        const marketOpenTime = new Date(now);
+        marketOpenTime.setHours(9, 30, 0, 0); // 9:30 AM
+        
+        // If it's before market open today, use yesterday's market open
+        if (now.getHours() < 9 || (now.getHours() === 9 && now.getMinutes() < 30)) {
+            marketOpenTime.setDate(marketOpenTime.getDate() - 1);
+        }
+        
         history = [
-            { date: 'Start', value: prevCloseValue },
-            { date: today, value: currentValue }
+            { 
+                timestamp: marketOpenTime.toISOString(), 
+                value: prevCloseValue, 
+                date: marketOpenTime.toISOString().split('T')[0],
+                isStatic: true // Mark as static/immutable
+            }
         ];
-    } else {
-        const todayIndex = history.findIndex(record => record.date === today);
-        if (todayIndex > -1) {
-            history[todayIndex].value = currentValue;
-        } else {
-            history.push({ date: today, value: currentValue });
+        
+        // Save initial history
+        localStorage.setItem('portfolioHistory', JSON.stringify(history));
+    }
+    
+    // Only display the chart - don't add new data points here
+    // Data points are only added by the scheduled portfolio tracking
+    updateChartWithHistory(history);
+}
+
+function updateChartWithHistory(history, timeFilter = 'all') {
+    if (!chartCanvasContext) {
+        console.error('Chart canvas context not found!');
+        return;
+    }
+    
+    // Clean up any duplicates before processing
+    const cleanedHistory = cleanupDuplicateDataPoints();
+    const historyToUse = cleanedHistory.length > 0 ? cleanedHistory : history;
+    
+    // Apply time filter
+    let filteredHistory = historyToUse;
+    const now = new Date();
+    
+    switch (timeFilter) {
+        case 'today':
+            const today = now.toISOString().split('T')[0];
+            filteredHistory = history.filter(item => item.date === today);
+            break;
+        case '5days':
+            const fiveDaysAgo = new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000);
+            filteredHistory = history.filter(item => new Date(item.timestamp) >= fiveDaysAgo);
+            break;
+        case 'month':
+            const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            filteredHistory = history.filter(item => new Date(item.timestamp) >= oneMonthAgo);
+            break;
+        case 'all':
+        default:
+            filteredHistory = history;
+            break;
+    }
+    
+    // Sort by timestamp
+    filteredHistory.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    
+    // Add current portfolio value as a non-persistent data point for display only
+    const currentValue = calculateCurrentPortfolioValue();
+    const displayData = [...filteredHistory];
+    
+    // Only add current value if we have historical data and it's not the same as the last historical point
+    if (displayData.length > 0) {
+        const lastHistoricalValue = displayData[displayData.length - 1].value;
+        if (Math.abs(currentValue - lastHistoricalValue) > 0.01) { // Only add if different by more than 1 cent
+            displayData.push({
+                timestamp: now.toISOString(),
+                value: currentValue,
+                date: now.toISOString().split('T')[0],
+                isCurrent: true // Mark as current (non-persistent)
+            });
         }
     }
-
-    localStorage.setItem('portfolioHistory', JSON.stringify(history));
-
-    const chartLabels = history.map(record => record.date);
-    const chartData = history.map(record => record.value);
-
+    
+    // Prepare chart data
+    const chartLabels = displayData.map(record => {
+        const date = new Date(record.timestamp);
+        if (record.isCurrent) {
+            return 'Now'; // Show "Now" for current value
+        }
+        return date.toLocaleTimeString('en-US', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            hour12: false 
+        });
+    });
+    
+    const chartData = displayData.map(record => record.value);
+    
+    // Create gradient
     const gradient = chartCanvasContext.createLinearGradient(0, 0, 0, 400);
     gradient.addColorStop(0, 'rgba(74, 105, 189, 0.4)');
     gradient.addColorStop(1, 'rgba(74, 105, 189, 0)');
-
+    
+    // Destroy existing chart
     if (etfChart) etfChart.destroy();
     
+    // Create new chart
     etfChart = new Chart(chartCanvasContext, {
         type: 'line',
         data: {
@@ -257,7 +729,7 @@ function updateAndRenderChart(currentValue, prevCloseValue) {
                 data: chartData,
                 borderColor: '#4a69bd',
                 borderWidth: 2,
-                pointRadius: 0,
+                pointRadius: 2,
                 tension: 0.1,
                 fill: true,
                 backgroundColor: gradient,
@@ -271,10 +743,34 @@ function updateAndRenderChart(currentValue, prevCloseValue) {
                 tooltip: {
                     mode: 'index',
                     intersect: false,
-                    callbacks: { label: (context) => `Value: $${parseFloat(context.raw).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}` }
+                    callbacks: { 
+                        label: (context) => `Value: $${parseFloat(context.raw).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}`,
+                        title: (context) => {
+                            const index = context[0].dataIndex;
+                            const record = displayData[index]; // Use displayData here
+                            if (record) {
+                                const date = new Date(record.timestamp);
+                                return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+                            }
+                            return context[0].label;
+                        }
+                    }
                 }
             },
-            scales: { x: { display: false }, y: { display: false } }
+            scales: { 
+                x: { 
+                    display: true,
+                    title: {
+                        display: false
+                    }
+                }, 
+                y: { 
+                    display: true,
+                    title: {
+                        display: false
+                    }
+                } 
+            }
         }
     });
 }

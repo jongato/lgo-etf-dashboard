@@ -74,119 +74,6 @@
         .news-article h4 a:hover { color: var(--primary-blue); }
         .news-article .source { font-size: 0.8rem; color: var(--text-secondary); }
         
-        /* Chart controls styling */
-        .chart-controls {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 1rem;
-            flex-wrap: wrap;
-        }
-        
-        .time-filter-btn {
-            padding: 0.4rem 0.8rem;
-            border: 1px solid var(--border-color);
-            background: var(--background-primary);
-            color: var(--text-secondary);
-            border-radius: 4px;
-            font-size: 0.8rem;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        
-        .time-filter-btn:hover {
-            background: var(--border-color);
-            color: var(--text-primary);
-        }
-        
-        .time-filter-btn.active {
-            background: var(--primary-blue);
-            color: white;
-            border-color: var(--primary-blue);
-        }
-        
-        .cleanup-btn {
-            padding: 0.4rem 0.8rem;
-            border: 1px solid var(--danger-color);
-            background: var(--background-primary);
-            color: var(--danger-color);
-            border-radius: 4px;
-            font-size: 0.8rem;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        
-        .cleanup-btn:hover {
-            background: var(--danger-color);
-            color: white;
-        }
-        
-        /* Chart status styling */
-        .chart-status {
-            margin-top: 1rem;
-            padding: 1rem;
-            background: var(--background-primary);
-            border-radius: 4px;
-            border: 1px solid var(--border-color);
-        }
-        
-        .chart-status-toggle {
-            margin-top: 0.5rem;
-            text-align: center;
-        }
-        
-        .status-toggle-btn {
-            background: none;
-            border: 1px solid var(--border-color);
-            color: var(--text-secondary);
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s ease;
-            margin: 0 auto;
-        }
-        
-        .status-toggle-btn:hover {
-            background: var(--border-color);
-            color: var(--text-primary);
-            transform: scale(1.1);
-        }
-        
-        .status-toggle-btn:active {
-            transform: scale(0.95);
-        }
-        
-        .status-item {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 0.5rem;
-            font-size: 0.85rem;
-        }
-        
-        .status-item:last-child {
-            margin-bottom: 0;
-        }
-        
-        .status-label {
-            color: var(--text-secondary);
-            font-weight: 500;
-        }
-        
-        .status-item span:last-child {
-            color: var(--text-primary);
-            font-weight: 600;
-        }
-        
-        /* Ensure proper spacing between chart and portfolio sections */
-        #performance-chart-card {
-            margin-bottom: 1.5rem;
-        }
-        
         /* Ensure day change colors are always visible */
         .value.change.positive { color: var(--success-color) !important; }
         .value.change.negative { color: var(--danger-color) !important; }
@@ -194,27 +81,9 @@
         /* Mobile-first responsive design */
         @media (max-width: 1023px) {
             .container { padding: 1rem; }
-            
-            /* Enhanced mobile header */
-            header {
-                margin-bottom: 1.5rem;
-                padding: 1.5rem 0;
-            }
-            
-            header h1 {
-                font-size: 2rem;
-                letter-spacing: 2px;
-                margin-top: 0.75rem;
-            }
-            
-            header::after {
-                width: 80px;
-            }
-            
-            
             h1 { font-size: 1.75rem; }
             .summary-metrics { 
-                grid-template-columns: repeat(2, 1fr); 
+                grid-template-columns: repeat(3, 1fr); 
                 gap: 0.75rem; 
                 margin-bottom: 1.5rem; 
             }
@@ -346,23 +215,6 @@
         /* Extra small mobile devices */
         @media (max-width: 480px) {
             .container { padding: 0.75rem; }
-            
-            /* Ultra-compact header for small screens */
-            header {
-                margin-bottom: 1rem;
-                padding: 1rem 0;
-            }
-            
-            header h1 {
-                font-size: 1.75rem;
-                letter-spacing: 1.5px;
-                margin-top: 0.5rem;
-            }
-            
-            header::after {
-                width: 60px;
-            }
-            
             .summary-metrics { 
                 gap: 0.5rem; 
                 margin-bottom: 1.25rem; 
@@ -397,11 +249,6 @@
                 flex-direction: column;
                 gap: 2rem;
             }
-            
-            /* Adjust chart height for main content area */
-            #performance-chart-card #chart-container {
-                height: 400px;
-            }
         }
         
         /* Mobile layout reordering */
@@ -418,139 +265,20 @@
             #performance-chart-card { order: 1; } /* Chart comes first in sidebar */
             #news { order: 2; } /* News comes second in sidebar */
         }
-
-        /* Mobile status toggle adjustments */
-        @media (max-width: 1023px) {
-            .status-toggle-btn {
-                width: 28px;
-                height: 28px;
-                font-size: 16px;
-            }
-            
-            .chart-status-toggle {
-                margin-top: 0.75rem;
-            }
-        }
-
-        /* Enhanced header styling */
-        header {
-            text-align: center;
-            margin-bottom: 2rem;
-            padding: 2rem 0;
-            position: relative;
-            animation: fadeInDown 0.8s ease-out;
-        }
-        
-        header h1 {
-            font-size: 2.5rem;
-            font-weight: 300;
-            margin: 0;
-            margin-top: 1rem;
-            letter-spacing: 3px;
-            text-transform: uppercase;
-            position: relative;
-            animation: slideInUp 0.8s ease-out 0.2s both;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            background: linear-gradient(90deg, var(--primary-blue), var(--success-color));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            filter: drop-shadow(0 2px 4px rgba(74, 105, 189, 0.2));
-        }
-        
-        /* Add subtle accent elements that complement the gradient title */
-        header::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 120px;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, var(--border-color), transparent);
-            opacity: 0.6;
-        }
-        
-        /* Remove subtitle styles since we're not using it */
-        
-        /* Elegant animations */
-        @keyframes fadeInDown {
-            from {
-                opacity: 0;
-                transform: translateY(-30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        @keyframes slideInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        /* Hover effects for interactivity */
-        header:hover h1 {
-            background: linear-gradient(90deg, var(--success-color), var(--primary-blue));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            transition: all 0.3s ease;
-            transform: scale(1.02);
-        }
     </style>
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1>LGO Partners ETF</h1>
-        </header>
+        <header><h1>LGO Partners ETF</h1></header>
 
         <section class="summary-metrics">
             <div class="metric-card"><h3>Total Value</h3><div class="value" id="total-value">$10,000.00</div></div>
             <div class="metric-card"><h3>Cash</h3><div class="value" id="cash-value">$0.00</div></div>
             <div class="metric-card"><h3>Day's Gain / Loss</h3><div class="value change" id="day-change">$0.00</div></div>
-            <div class="metric-card"><h3>Total Gain / Loss</h3><div class="value change" id="total-gain-loss">$0.00</div></div>
         </section>
         
         <main class="dashboard-layout">
             <div id="main-content">
-                <section id="performance-chart-card" class="card">
-                    <h2>ETF Performance</h2>
-                    <div class="chart-controls">
-                        <button class="time-filter-btn active" data-filter="all">All Data</button>
-                        <button class="time-filter-btn" data-filter="today">Today</button>
-                        <button class="time-filter-btn" data-filter="5days">Last 5 Days</button>
-                        <button class="time-filter-btn" data-filter="month">Last Month</button>
-                        <button class="cleanup-btn" id="cleanup-duplicates">Clean Duplicates</button>
-                    </div>
-                    <div id="chart-container"><canvas id="etfChart"></canvas></div>
-                    <div class="chart-status-toggle">
-                        <button class="status-toggle-btn" id="status-toggle" title="Show/Hide Status">+</button>
-                    </div>
-                    <div class="chart-status" id="chart-status" style="display: none;">
-                        <div class="status-item">
-                            <span class="status-label">Next Update:</span>
-                            <span id="next-update-time">Calculating...</span>
-                        </div>
-                        <div class="status-item">
-                            <span class="status-label">Last Update:</span>
-                            <span id="last-update-time">-</span>
-                        </div>
-                        <div class="status-item">
-                            <span class="status-label">Status:</span>
-                            <span id="tracking-status">Initializing...</span>
-                        </div>
-                    </div>
-                </section>
-                
                 <section id="portfolio" class="card">
                     <h2>Portfolio Holdings</h2>
                     <div class="table-wrapper">
@@ -574,6 +302,10 @@
             </div>
             
             <div id="sidebar">
+                <section id="performance-chart-card" class="card">
+                    <h2>ETF Performance</h2>
+                    <div id="chart-container"><canvas id="etfChart"></canvas></div>
+                </section>
                 <section id="news" class="card">
                     <h2>Recent News</h2>
                     <div class="news-list" id="news-list"></div>
