@@ -74,6 +74,10 @@
         .news-article h4 a:hover { color: var(--primary-blue); }
         .news-article .source { font-size: 0.8rem; color: var(--text-secondary); }
         
+        /* Ensure day change colors are always visible */
+        .value.change.positive { color: var(--success-color) !important; }
+        .value.change.negative { color: var(--danger-color) !important; }
+        
         /* Mobile-first responsive design */
         @media (max-width: 1023px) {
             .container { padding: 1rem; }
@@ -176,8 +180,8 @@
                 flex-direction: column; 
                 gap: 0; 
             }
-            #main-content { order: 2; }
-            #sidebar { order: 1; }
+            #main-content { order: 1; }
+            #sidebar { order: 2; }
             #performance-chart-card { order: 1; margin-bottom: 1.5rem; }
             #news { order: 3; margin-bottom: 0; }
             
@@ -197,6 +201,14 @@
             /* Additional mobile spacing improvements */
             .summary-metrics + .dashboard-layout {
                 margin-top: 0;
+            }
+            
+            /* Ensure day change colors work properly on mobile */
+            .summary-metrics .metric-card .value.change.positive {
+                color: var(--success-color) !important;
+            }
+            .summary-metrics .metric-card .value.change.negative {
+                color: var(--danger-color) !important;
             }
         }
         
