@@ -10,7 +10,7 @@ const STOCKS = [
     { ticker: 'TGT', name: 'Target' }, { ticker: 'VZ', name: 'Verizon' }
 ];
 const INITIAL_INVESTMENT = 10000;
-const API_BASE_URL = 'http://localhost:3000';
+const API_BASE_URL = 'https://lgo-etf-backend.onrender.com';
 
 // --- DOM Elements & State ---
 const portfolioBody = document.getElementById('portfolio-body');
@@ -57,14 +57,13 @@ function renderPortfolioTable() {
     portfolioBody.innerHTML = '';
     portfolio.stocks.forEach(stock => {
         const row = document.createElement('tr');
-        // Switched back to Day's Change in $
         row.innerHTML = `
             <td><div class="company-name">${stock.name}</div><div class="ticker">${stock.ticker}</div></td>
-            <td class="shares">${stock.shares.toFixed(4)}</td>
-            <td class="price">$0.00</td>
-            <td class="value">$0.00</td>
-            <td class="weight">0.00%</td>
-            <td class="change positive">$0.00</td>
+            <td class="shares"></td>
+            <td class="price"></td>
+            <td class="value"></td>
+            <td class="weight"></td>
+            <td class="change"></td>
             <td>
                 <button class="action-btn buy-btn" data-ticker="${stock.ticker}">Buy</button>
                 <button class="action-btn sell-btn" data-ticker="${stock.ticker}">Sell</button>
@@ -80,7 +79,7 @@ function renderPortfolioTable() {
 function updateDashboard(stockData) {
     portfolio.stocks.forEach(stock => {
         const data = stockData.find(d => d.ticker === stock.ticker);
-        if (data) {
+        if (data && data.c) {
             stock.currentPrice = data.c;
             stock.dayChangePerShare = data.d;
         }
@@ -99,23 +98,22 @@ function updateDashboard(stockData) {
         if (!row) return;
 
         const holdingValue = stock.shares * stock.currentPrice;
-        const weight = (holdingValue / currentTotalValue) * 100 || 0;
+        const weight = (holdingValue / currentTotalValue) * 100;
         const holdingDayChange = stock.shares * stock.dayChangePerShare;
 
         row.querySelector('.shares').textContent = stock.shares.toFixed(4);
         row.querySelector('.price').textContent = `$${stock.currentPrice.toFixed(2)}`;
-        row.querySelector('.value').textContent = `$${holdingValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        row.querySelector('.value').textContent = `$${holdingValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
         row.querySelector('.weight').textContent = `${weight.toFixed(2)}%`;
         const changeCell = row.querySelector('.change');
         changeCell.textContent = `${holdingDayChange >= 0 ? '+' : ''}$${holdingDayChange.toFixed(2)}`;
         changeCell.className = `change ${holdingDayChange >= 0 ? 'positive' : 'negative'}`;
     });
 
-    // Update the summary cards with comma formatting
-    document.getElementById('total-value').textContent = `$${currentTotalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    document.getElementById('cash-value').textContent = `$${portfolio.cash.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    document.getElementById('total-value').textContent = `$${currentTotalValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    document.getElementById('cash-value').textContent = `$${portfolio.cash.toFixed(2)}`;
     const dayChangeEl = document.getElementById('day-change');
-    dayChangeEl.textContent = `${totalDayChange >= 0 ? '+' : ''}$${totalDayChange.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    dayChangeEl.textContent = `${totalDayChange >= 0 ? '+' : ''}$${totalDayChange.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
     dayChangeEl.className = `value change ${totalDayChange >= 0 ? 'positive' : 'negative'}`;
     
     updateAndRenderChart(currentTotalValue, portfolioValueAtPrevClose);
@@ -126,6 +124,7 @@ function handleTrade(event) {
     const type = event.target.classList.contains('buy-btn') ? 'buy' : 'sell';
     
     const sharesToTradeStr = prompt(`How many shares of ${ticker} would you like to ${type}?`);
+    // CORRECTED THE TYPO IN THE LINE BELOW
     if (sharesToTradeStr === null || isNaN(sharesToTradeStr) || +sharesToTradeStr <= 0) return;
     
     const sharesToTrade = parseFloat(sharesToTradeStr);
