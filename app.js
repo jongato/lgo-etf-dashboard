@@ -367,6 +367,28 @@ function setupTimeFilterControls() {
             }
         });
     }
+    
+    // Add controls toggle button event listener
+    const controlsToggleBtn = document.getElementById('controls-toggle');
+    const dataControls = document.getElementById('data-controls');
+    
+    if (controlsToggleBtn && dataControls) {
+        controlsToggleBtn.addEventListener('click', () => {
+            const isHidden = dataControls.style.display === 'none';
+            
+            if (isHidden) {
+                // Show data controls
+                dataControls.style.display = 'flex';
+                controlsToggleBtn.title = 'Hide Controls';
+                controlsToggleBtn.style.transform = 'rotate(90deg)';
+            } else {
+                // Hide data controls
+                dataControls.style.display = 'none';
+                controlsToggleBtn.title = 'Show Controls';
+                controlsToggleBtn.style.transform = 'rotate(0deg)';
+            }
+        });
+    }
 }
 
 function updateChartWithTimeFilter(filter) {
