@@ -3,96 +3,110 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LGO Partners ETF Dashboard</title>
+    <title>LGO Partners ETF</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Asap:wght@400;700&display=swap" rel="stylesheet">
     <style>
+        /* --- CSS Variables and Global Styles --- */
         :root {
             --primary-blue: #4a69bd;
             --primary-purple: #6a0dad;
             --text-dark: #2c3e50;
-            --text-light: #8e959d;
+            --text-light: #555555;
             --bg-color: #f8f9fa;
             --card-bg: #ffffff;
             --border-color: #e9ecef;
-            --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
             --success-color: #2ecc71;
             --danger-color: #e74c3c;
         }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Asap', sans-serif;
+            font-weight: 400;
             margin: 0;
             background-color: var(--bg-color);
             color: var(--text-dark);
         }
-        .container { max-width: 1400px; margin: 0 auto; padding: 2rem; }
-        header { margin-bottom: 2rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1.5rem; }
-        
-        h1, h2 { margin: 0; }
-        h1 { font-size: 2.25rem; color: var(--primary-blue); }
-        h2 { font-size: 1.5rem; margin-bottom: 1.5rem; color: var(--text-dark); }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
 
-        .card { background-color: var(--card-bg); border-radius: 12px; padding: 1.5rem; box-shadow: var(--shadow); }
-        .summary-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
-        .metric-card { background-color: var(--card-bg); border-radius: 12px; padding: 1.5rem; box-shadow: var(--shadow); border-left: 5px solid var(--primary-purple); }
-        .metric-card h3 { font-size: 1rem; color: var(--text-light); text-transform: uppercase; font-weight: 600; }
-        .metric-card .value { font-size: 2rem; font-weight: 600; }
-        .metric-card .change { font-size: 1rem; font-weight: 500; }
-        .positive { color: var(--success-color); }
-        .negative { color: var(--danger-color); }
+        /* --- Mobile First Layout (Default) --- */
+        header {
+            padding: 0.5rem 0 1.5rem 0;
+        }
+        h1 { font-size: 1.75rem; font-weight: 700; color: var(--text-dark); }
+        h2 { font-size: 1.25rem; margin-bottom: 1rem; font-weight: 700; color: var(--text-dark); }
+        .card { background-color: var(--card-bg); border-radius: 12px; padding: 1.5rem; box-shadow: var(--shadow); margin-bottom: 1.5rem; }
         
-        /* --- NEW LAYOUT STYLES --- */
-        .dashboard-layout {
+        .summary-metrics {
             display: grid;
-            grid-template-columns: 2fr 1fr; /* Main content takes 2/3, sidebar takes 1/3 */
-            gap: 2rem;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
         }
-        .sidebar {
-            display: flex;
-            flex-direction: column;
-            gap: 2rem;
+        .metric-card {
+            padding: 1rem;
+            border-left: none; /* Remove side border for mobile */
         }
-        #chart-container { position: relative; height: 300px; } /* Adjusted height */
+        .metric-card.total-value {
+             grid-column: 1 / -1; /* Make Total Value span full width */
+             border-left: 5px solid var(--primary-purple);
+        }
+        .metric-card h3 { font-size: 0.8rem; margin-bottom: 0.25rem; color: var(--text-light); text-transform: uppercase; font-weight: 700; }
+        .metric-card .value { font-size: 1.75rem; font-weight: 700; }
+        
+        #chart-container { position: relative; height: 250px; }
 
         .table-wrapper { overflow-x: auto; }
-        #portfolio table { width: 100%; border-collapse: collapse; font-size: 0.95rem; white-space: nowrap; }
-        #portfolio th, #portfolio td { padding: 1rem 1.25rem; text-align: left; border-bottom: 1px solid var(--border-color); }
-        #portfolio thead th { color: var(--text-light); font-weight: 600; text-transform: uppercase; font-size: 0.8rem; }
-        #portfolio .company-name { font-weight: 600; }
-        #portfolio .ticker { color: var(--text-light); font-size: 0.9rem; }
-        
+        #portfolio table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        #portfolio th, #portfolio td { padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--border-color); white-space: nowrap; }
+        #portfolio thead th { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+        #portfolio .company-info { display: flex; flex-direction: column; }
+        #portfolio .company-name { font-weight: 700; }
+        #portfolio .ticker { font-size: 0.8rem; color: var(--text-light); }
+        .positive { color: var(--success-color); }
+        .negative { color: var(--danger-color); }
+
         .action-btn {
-            padding: 0.3rem 0.6rem;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            background-color: transparent;
-            cursor: pointer;
-            font-size: 0.8rem;
-            margin-right: 0.5rem;
-            transition: all 0.2s ease-in-out;
+            padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.8rem;
+            border: 1px solid var(--border-color); background-color: var(--bg-color); cursor: pointer;
         }
-        .buy-btn { color: var(--success-color); border-color: var(--success-color); }
-        .buy-btn:hover { background-color: var(--success-color); color: white; }
-        .sell-btn { color: var(--danger-color); border-color: var(--danger-color); }
-        .sell-btn:hover { background-color: var(--danger-color); color: white; }
         
-        .news-list { display: flex; flex-direction: column; gap: 1rem; }
-        .news-article { border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; }
-        .news-article:last-child { border-bottom: none; padding-bottom: 0; }
-        .news-article h4 { margin: 0 0 0.25rem 0; font-size: 1rem; font-weight: 600; }
+        .news-article { border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1rem; }
+        .news-article:last-child { border-bottom: none; margin-bottom: 0; }
+        .news-article h4 { margin: 0 0 0.25rem 0; font-size: 1rem; font-weight: 700; }
         .news-article a { text-decoration: none; color: var(--primary-blue); }
-        .news-article a:hover { text-decoration: underline; }
-        .news-article .source { font-size: 0.85rem; color: var(--text-light); }
+        .news-article .source { font-size: 0.8rem; color: var(--text-light); }
         
-        @media (max-width: 992px) { .dashboard-layout { grid-template-columns: 1fr; } }
+        /* --- Desktop Layout (for screens wider than 1024px) --- */
+        @media (min-width: 1024px) {
+            .container { padding: 2rem; }
+            h1 { font-size: 2.25rem; }
+            h2 { font-size: 1.5rem; }
+            .summary-metrics { grid-template-columns: repeat(3, 1fr); }
+            .metric-card.total-value { grid-column: auto; } /* Reset span for desktop */
+            .metric-card { border-left: 5px solid var(--primary-purple); }
+
+            .dashboard-layout {
+                display: grid;
+                grid-template-columns: 2fr 1fr; /* Two-column layout */
+                gap: 2rem;
+                margin-top: 2rem;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>LGO Partners ETF Dashboard</h1>
+            <h1>LGO Partners ETF</h1>
         </header>
 
         <section class="summary-metrics">
-            <div class="metric-card">
+            <div class="metric-card total-value">
                 <h3>Total Value</h3>
                 <div class="value" id="total-value">$10,000.00</div>
             </div>
@@ -107,26 +121,28 @@
         </section>
 
         <main class="dashboard-layout">
-            <section id="portfolio" class="card">
-                <h2>Portfolio Holdings</h2>
-                <div class="table-wrapper">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Company</th>
-                                <th>Shares</th>
-                                <th>Price</th>
-                                <th>Value</th>
-                                <th>Weight (%)</th>
-                                <th>Day's Change ($)</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="portfolio-body"></tbody>
-                    </table>
-                </div>
-            </section>
-
+            <div class="main-content">
+                <section id="portfolio" class="card">
+                    <h2>Portfolio Holdings</h2>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Company</th>
+                                    <th>Shares</th>
+                                    <th>Price</th>
+                                    <th>Value</th>
+                                    <th>Weight (%)</th>
+                                    <th>Day's Change ($)</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="portfolio-body"></tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+            
             <div class="sidebar">
                 <section id="performance-chart-card" class="card">
                     <h2>ETF Performance</h2>
