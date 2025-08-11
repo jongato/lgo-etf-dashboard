@@ -57,12 +57,19 @@ function renderPortfolioTable() {
     portfolioBody.innerHTML = '';
     portfolio.stocks.forEach(stock => {
         const row = document.createElement('tr');
+        const dayChangePercent = ((stock.dayChangePerShare / (stock.currentPrice - stock.dayChangePerShare)) * 100);
+        const holdingValue = stock.shares * stock.currentPrice;
+        const weight = (holdingValue / (portfolio.stocks.reduce((sum, s) => sum + (s.shares * s.currentPrice), 0) + portfolio.cash)) * 100;
+        const holdingDayChange = stock.shares * stock.dayChangePerShare;
+        
         row.innerHTML = `
             <td><div class="company-name">${stock.name}</div><div class="ticker">${stock.ticker}</div></td>
+            <td class="price">$${stock.currentPrice.toFixed(2)}</td>
+            <td class="day-change-percent ${dayChangePercent >= 0 ? 'positive' : 'negative'}">${dayChangePercent >= 0 ? '+' : ''}${dayChangePercent.toFixed(2)}%</td>
+            <td class="day-change-dollar ${stock.dayChangePerShare >= 0 ? 'positive' : 'negative'}">${stock.dayChangePerShare >= 0 ? '+' : ''}$${stock.dayChangePerShare.toFixed(2)}</td>
             <td class="shares">${stock.shares.toFixed(4)}</td>
-            <td class="value">$0.00</td>
-            <td class="weight">0.00%</td>
-            <td class="change positive">$0.00</td>
+            <td class="value">$${holdingValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+            <td class="weight">${weight.toFixed(2)}%</td>
             <td>
                 <button class="action-btn buy-btn" data-ticker="${stock.ticker}">Buy</button>
                 <button class="action-btn sell-btn" data-ticker="${stock.ticker}">Sell</button>
@@ -95,15 +102,20 @@ function updateDashboard(stockData) {
     portfolio.stocks.forEach(stock => {
         const row = portfolioBody.querySelector(`button[data-ticker="${stock.ticker}"]`).closest('tr');
         if (!row) return;
+        
         const holdingValue = stock.shares * stock.currentPrice;
         const weight = (holdingValue / currentTotalValue) * 100;
-        const holdingDayChange = stock.shares * stock.dayChangePerShare;
+        const dayChangePercent = ((stock.dayChangePerShare / (stock.currentPrice - stock.dayChangePerShare)) * 100);
+        
+        // Update all columns with current data
+        row.querySelector('.price').textContent = `$${stock.currentPrice.toFixed(2)}`;
+        row.querySelector('.day-change-percent').textContent = `${dayChangePercent >= 0 ? '+' : ''}${dayChangePercent.toFixed(2)}%`;
+        row.querySelector('.day-change-percent').className = `day-change-percent ${dayChangePercent >= 0 ? 'positive' : 'negative'}`;
+        row.querySelector('.day-change-dollar').textContent = `${stock.dayChangePerShare >= 0 ? '+' : ''}$${stock.dayChangePerShare.toFixed(2)}`;
+        row.querySelector('.day-change-dollar').className = `day-change-dollar ${stock.dayChangePerShare >= 0 ? 'positive' : 'negative'}`;
         row.querySelector('.shares').textContent = stock.shares.toFixed(4);
         row.querySelector('.value').textContent = `$${holdingValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
         row.querySelector('.weight').textContent = `${weight.toFixed(2)}%`;
-        const changeCell = row.querySelector('.change');
-        changeCell.textContent = `${holdingDayChange >= 0 ? '+' : ''}$${holdingDayChange.toFixed(2)}`;
-        changeCell.className = `change ${holdingDayChange >= 0 ? 'positive' : 'negative'}`;
     });
 
     document.getElementById('total-value').textContent = `$${currentTotalValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
@@ -148,7 +160,13 @@ function executeTrade(ticker, shares, type) {
         portfolio.cash += tradeValue;
         stock.shares -= shares;
     }
-    updateDashboard(portfolio.stocks.map(s => ({ ticker: s.ticker, c: s.currentPrice, d: s.dayChangePerShare })));
+    // Create proper stock data structure for updateDashboard
+    const stockData = portfolio.stocks.map(s => ({ 
+        ticker: s.ticker, 
+        c: s.currentPrice, 
+        d: s.dayChangePerShare 
+    }));
+    updateDashboard(stockData);
 }
 
 async function fetchNews() {
