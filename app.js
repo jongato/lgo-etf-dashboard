@@ -59,11 +59,10 @@ function renderPortfolioTable() {
         const row = document.createElement('tr');
         row.innerHTML = `
             <td><div class="company-name">${stock.name}</div><div class="ticker">${stock.ticker}</div></td>
-            <td class="shares"></td>
-            <td class="price"></td>
-            <td class="value"></td>
-            <td class="weight"></td>
-            <td class="change"></td>
+            <td class="shares">${stock.shares.toFixed(4)}</td>
+            <td class="value">$0.00</td>
+            <td class="weight">0.00%</td>
+            <td class="change positive">$0.00</td>
             <td>
                 <button class="action-btn buy-btn" data-ticker="${stock.ticker}">Buy</button>
                 <button class="action-btn sell-btn" data-ticker="${stock.ticker}">Sell</button>
@@ -79,7 +78,7 @@ function renderPortfolioTable() {
 function updateDashboard(stockData) {
     portfolio.stocks.forEach(stock => {
         const data = stockData.find(d => d.ticker === stock.ticker);
-        if (data && data.c) {
+        if (data) {
             stock.currentPrice = data.c;
             stock.dayChangePerShare = data.d;
         }
@@ -96,13 +95,10 @@ function updateDashboard(stockData) {
     portfolio.stocks.forEach(stock => {
         const row = portfolioBody.querySelector(`button[data-ticker="${stock.ticker}"]`).closest('tr');
         if (!row) return;
-
         const holdingValue = stock.shares * stock.currentPrice;
         const weight = (holdingValue / currentTotalValue) * 100;
         const holdingDayChange = stock.shares * stock.dayChangePerShare;
-
         row.querySelector('.shares').textContent = stock.shares.toFixed(4);
-        row.querySelector('.price').textContent = `$${stock.currentPrice.toFixed(2)}`;
         row.querySelector('.value').textContent = `$${holdingValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
         row.querySelector('.weight').textContent = `${weight.toFixed(2)}%`;
         const changeCell = row.querySelector('.change');
@@ -114,6 +110,9 @@ function updateDashboard(stockData) {
     document.getElementById('cash-value').textContent = `$${portfolio.cash.toFixed(2)}`;
     const dayChangeEl = document.getElementById('day-change');
     dayChangeEl.textContent = `${totalDayChange >= 0 ? '+' : ''}$${totalDayChange.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    
+    // --- THIS IS THE FIX ---
+    // This line adds the 'positive' or 'negative' class back to the summary card
     dayChangeEl.className = `value change ${totalDayChange >= 0 ? 'positive' : 'negative'}`;
     
     updateAndRenderChart(currentTotalValue, portfolioValueAtPrevClose);
@@ -124,7 +123,6 @@ function handleTrade(event) {
     const type = event.target.classList.contains('buy-btn') ? 'buy' : 'sell';
     
     const sharesToTradeStr = prompt(`How many shares of ${ticker} would you like to ${type}?`);
-    // CORRECTED THE TYPO IN THE LINE BELOW
     if (sharesToTradeStr === null || isNaN(sharesToTradeStr) || +sharesToTradeStr <= 0) return;
     
     const sharesToTrade = parseFloat(sharesToTradeStr);
