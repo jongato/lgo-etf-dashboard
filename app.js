@@ -186,7 +186,13 @@ async function fetchNews() {
         const requests = portfolio.stocks.map(stock => fetch(`${API_BASE_URL}/news/${stock.ticker}`).then(res => res.json()));
         const results = await Promise.all(requests);
         const allArticles = results.flat().filter(a => a && a.headline).sort((a, b) => b.datetime - a.datetime);
-        renderNews(allArticles.slice(0, 7));
+        
+        // Deduplicate news articles by headline
+        const uniqueArticles = allArticles.filter((article, index, self) => 
+            index === self.findIndex(a => a.headline === article.headline)
+        );
+        
+        renderNews(uniqueArticles.slice(0, 7));
     } catch (error) { console.error('Error fetching news:', error); }
 }
 
