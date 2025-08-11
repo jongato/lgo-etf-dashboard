@@ -120,6 +120,22 @@
             color: white;
         }
         
+        .sync-btn {
+            padding: 0.4rem 0.8rem;
+            border: 1px solid var(--success-color);
+            background: var(--background-primary);
+            color: var(--success-color);
+            border-radius: 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .sync-btn:hover {
+            background: var(--success-color);
+            color: white;
+        }
+        
         /* Chart status styling */
         .chart-status {
             margin-top: 1rem;
@@ -205,10 +221,13 @@
                 font-size: 2rem;
                 letter-spacing: 2px;
                 margin-top: 0.75rem;
+                font-weight: 600;
             }
             
-            header::after {
-                width: 80px;
+            header h1::after {
+                width: 100px;
+                height: 2px;
+                bottom: -6px;
             }
             
             
@@ -357,10 +376,13 @@
                 font-size: 1.75rem;
                 letter-spacing: 1.5px;
                 margin-top: 0.5rem;
+                font-weight: 600;
             }
             
-            header::after {
-                width: 60px;
+            header h1::after {
+                width: 80px;
+                height: 2px;
+                bottom: -5px;
             }
             
             /* Compact metric cards for very small screens */
@@ -544,7 +566,7 @@
         
         header h1 {
             font-size: 2.5rem;
-            font-weight: 300;
+            font-weight: 600;
             margin: 0;
             margin-top: 1rem;
             letter-spacing: 3px;
@@ -552,24 +574,39 @@
             position: relative;
             animation: slideInUp 0.8s ease-out 0.2s both;
             text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            background: linear-gradient(90deg, var(--primary-blue), var(--success-color));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            filter: drop-shadow(0 2px 4px rgba(74, 105, 189, 0.2));
+            color: var(--text-primary);
         }
         
-        /* Add subtle accent elements that complement the gradient title */
-        header::after {
+        /* Remove gradient styling for "LGO" - now it's just regular text */
+        header h1 .gradient-text {
+            /* No special styling - inherits from parent */
+        }
+        
+        /* Remove the problematic gradient animation */
+        
+        /* Add elegant gradient underline accent */
+        header h1::after {
             content: '';
             position: absolute;
-            bottom: 0;
+            bottom: -8px;
             left: 50%;
             transform: translateX(-50%);
             width: 120px;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, var(--border-color), transparent);
-            opacity: 0.6;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary-blue), var(--success-color), var(--primary-blue));
+            border-radius: 2px;
+            opacity: 0.8;
+            box-shadow: 0 2px 8px rgba(74, 105, 189, 0.3);
+            animation: expandWidth 1s ease-out 0.8s both;
+        }
+        
+        @keyframes expandWidth {
+            from {
+                width: 0;
+            }
+            to {
+                width: 120px;
+            }
         }
         
         /* Remove subtitle styles since we're not using it */
@@ -597,32 +634,41 @@
             }
         }
         
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
+        /* Remove expandWidth animation since we no longer have a color bar */
         
         /* Hover effects for interactivity */
         header:hover h1 {
-            background: linear-gradient(90deg, var(--success-color), var(--primary-blue));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            transition: all 0.3s ease;
-            transform: scale(1.02);
+            color: var(--text-primary);
+            transition: color 0.3s ease;
         }
+        
+        /* Remove gradient text hover effects since LGO is now regular text */
+        
+        /* Hover effects for the gradient underline */
+        header:hover h1::after {
+            background: linear-gradient(90deg, var(--success-color), var(--primary-blue), var(--success-color));
+            transition: all 0.3s ease;
+            transform: translateX(-50%) scaleX(1.1);
+            box-shadow: 0 4px 12px rgba(74, 105, 189, 0.4);
+            animation: underlinePulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes underlinePulse {
+            0%, 100% {
+                box-shadow: 0 2px 8px rgba(74, 105, 189, 0.3);
+            }
+            50% {
+                box-shadow: 0 4px 12px rgba(74, 105, 189, 0.5);
+            }
+        }
+        
+        /* Remove old color bar hover effects */
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>LGO Partners ETF</h1>
+            <h1><span class="gradient-text">LGO</span> Partners ETF</h1>
         </header>
 
         <section class="summary-metrics">
@@ -642,6 +688,7 @@
                         <button class="time-filter-btn" data-filter="5days">Last 5 Days</button>
                         <button class="time-filter-btn" data-filter="month">Last Month</button>
                         <button class="cleanup-btn" id="cleanup-duplicates">Clean Duplicates</button>
+                        <button class="sync-btn" id="sync-data">Sync Data</button>
                     </div>
                     <div id="chart-container"><canvas id="etfChart"></canvas></div>
                     <div class="chart-status-toggle">

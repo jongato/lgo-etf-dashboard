@@ -12,6 +12,10 @@ const STOCKS = [
 const INITIAL_INVESTMENT = 10000;
 const API_BASE_URL = 'https://lgo-etf-backend.onrender.com';
 
+// Portfolio data persistence endpoints
+const PORTFOLIO_HISTORY_ENDPOINT = `${API_BASE_URL}/portfolio-history`;
+const PORTFOLIO_UPDATE_ENDPOINT = `${API_BASE_URL}/portfolio-update`;
+
 // Market hours configuration (Eastern Time)
 const MARKET_OPEN_HOUR = 9;
 const MARKET_OPEN_MINUTE = 30;
@@ -52,6 +56,9 @@ function cleanupDuplicateDataPoints() {
             // Save cleaned history
             localStorage.setItem('portfolioHistory', JSON.stringify(cleanedHistory));
             
+            // Also save to server for persistence
+            savePortfolioDataToServer(cleanedHistory);
+            
             console.log(`Cleaned up duplicate data points. Before: ${history.length}, After: ${cleanedHistory.length}`);
             
             return cleanedHistory;
@@ -61,6 +68,73 @@ function cleanupDuplicateDataPoints() {
         return [];
     }
     return [];
+}
+
+// Server-side data persistence functions
+async function savePortfolioDataToServer(history) {
+    try {
+        const response = await fetch(PORTFOLIO_UPDATE_ENDPOINT, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                portfolioHistory: history,
+                timestamp: new Date().toISOString(),
+                version: '1.0' // Add version for future compatibility
+            })
+        });
+        
+        if (response.ok) {
+            console.log('Portfolio data saved to server successfully');
+            return true;
+        } else {
+            console.error('Failed to save portfolio data to server:', response.status);
+            return false;
+        }
+    } catch (error) {
+        console.error('Error saving portfolio data to server:', error);
+        return false;
+    }
+}
+
+async function loadPortfolioDataFromServer() {
+    try {
+        const response = await fetch(PORTFOLIO_HISTORY_ENDPOINT);
+        
+        if (response.ok) {
+            const data = await response.json();
+            console.log('Portfolio data loaded from server successfully');
+            return data.portfolioHistory || [];
+        } else {
+            console.log('No server data available, using localStorage fallback');
+            return null;
+        }
+    } catch (error) {
+        console.log('Error loading from server, using localStorage fallback:', error);
+        return null;
+    }
+}
+
+// Manual sync function to migrate existing localStorage data to server
+async function syncLocalDataToServer() {
+    try {
+        const storedHistory = localStorage.getItem('portfolioHistory');
+        if (storedHistory) {
+            const history = JSON.parse(storedHistory);
+            if (history.length > 0) {
+                console.log('Syncing existing localStorage data to server...');
+                const success = await savePortfolioDataToServer(history);
+                if (success) {
+                    console.log('Successfully synced', history.length, 'data points to server');
+                } else {
+                    console.log('Failed to sync data to server');
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error syncing data to server:', error);
+    }
 }
 
 // --- DOM Elements & State ---
@@ -88,6 +162,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Clean up any existing duplicate data points
     cleanupDuplicateDataPoints();
+    
+    // Sync existing localStorage data to server for persistence
+    syncLocalDataToServer();
     
     // Start fetching data
     fetchInitialData();
@@ -132,6 +209,25 @@ function setupTimeFilterControls() {
             cleanupBtn.textContent = 'Cleaned!';
             setTimeout(() => {
                 cleanupBtn.textContent = 'Clean Duplicates';
+            }, 2000);
+        });
+    }
+    
+    // Add sync button event listener
+    const syncBtn = document.getElementById('sync-data');
+    if (syncBtn) {
+        syncBtn.addEventListener('click', async () => {
+            console.log('Manual sync requested');
+            syncBtn.textContent = 'Syncing...';
+            syncBtn.disabled = true;
+            
+            await syncLocalDataToServer();
+            
+            // Show feedback
+            syncBtn.textContent = 'Synced!';
+            setTimeout(() => {
+                syncBtn.textContent = 'Sync Data';
+                syncBtn.disabled = false;
             }, 2000);
         });
     }
@@ -383,6 +479,9 @@ function updatePortfolioValue() {
         // Clean up any duplicates that might have been created
         const cleanedHistory = cleanupDuplicateDataPoints();
         
+        // Save to server for persistence across deployments
+        savePortfolioDataToServer(cleanedHistory.length > 0 ? cleanedHistory : history);
+        
         // Update status indicators
         updateStatusIndicators();
         
@@ -600,47 +699,57 @@ function renderNews(articles) {
 function updateAndRenderChart(currentValue, prevCloseValue) {
     let history = [];
     
-    try {
-        const storedHistory = localStorage.getItem('portfolioHistory');
-        if (storedHistory) {
-            history = JSON.parse(storedHistory);
-        }
-    } catch (error) {
-        console.log('Clearing corrupted localStorage data');
-        localStorage.removeItem('portfolioHistory');
-        history = [];
-    }
-    
-    // If no history exists, create initial static data point
-    if (history.length === 0) {
-        const now = new Date();
-        const today = now.toISOString().split('T')[0];
-        
-        // Create initial static data point at market open (9:30 AM ET)
-        const marketOpenTime = new Date(now);
-        marketOpenTime.setHours(9, 30, 0, 0); // 9:30 AM
-        
-        // If it's before market open today, use yesterday's market open
-        if (now.getHours() < 9 || (now.getHours() === 9 && now.getMinutes() < 30)) {
-            marketOpenTime.setDate(marketOpenTime.getDate() - 1);
-        }
-        
-        history = [
-            { 
-                timestamp: marketOpenTime.toISOString(), 
-                value: prevCloseValue, 
-                date: marketOpenTime.toISOString().split('T')[0],
-                isStatic: true // Mark as static/immutable
+    // Try to load from server first, then localStorage as fallback
+    loadPortfolioDataFromServer().then(serverHistory => {
+        if (serverHistory && serverHistory.length > 0) {
+            console.log('Using server data:', serverHistory.length, 'data points');
+            history = serverHistory;
+        } else {
+            // Fallback to localStorage
+            try {
+                const storedHistory = localStorage.getItem('portfolioHistory');
+                if (storedHistory) {
+                    history = JSON.parse(storedHistory);
+                    console.log('Using localStorage fallback:', history.length, 'data points');
+                }
+            } catch (error) {
+                console.log('Clearing corrupted localStorage data');
+                localStorage.removeItem('portfolioHistory');
+                history = [];
             }
-        ];
+        }
         
-        // Save initial history
-        localStorage.setItem('portfolioHistory', JSON.stringify(history));
-    }
-    
-    // Only display the chart - don't add new data points here
-    // Data points are only added by the scheduled portfolio tracking
-    updateChartWithHistory(history);
+        // If no history exists, create initial static data point
+        if (history.length === 0) {
+            const now = new Date();
+            const today = now.toISOString().split('T')[0];
+            
+            // Create initial static data point at market open (9:30 AM ET)
+            const marketOpenTime = new Date(now);
+            marketOpenTime.setHours(9, 30, 0, 0); // 9:30 AM
+            
+            // If it's before market open today, use yesterday's market open
+            if (now.getHours() < 9 || (now.getHours() === 9 && now.getMinutes() < 30)) {
+                marketOpenTime.setDate(marketOpenTime.getDate() - 1);
+            }
+            
+            history = [
+                { 
+                    timestamp: marketOpenTime.toISOString(), 
+                    value: prevCloseValue, 
+                    date: marketOpenTime.toISOString().split('T')[0],
+                    isStatic: true // Mark as static/immutable
+                }
+            ];
+            
+            // Save initial history to both localStorage and server
+            localStorage.setItem('portfolioHistory', JSON.stringify(history));
+            savePortfolioDataToServer(history);
+        }
+        
+        // Update chart with current data
+        updateChartWithHistory(history);
+    });
 }
 
 function updateChartWithHistory(history, timeFilter = 'all') {
